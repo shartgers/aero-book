@@ -1,15 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import Stripe from "stripe";
 import { auth } from "@/lib/auth/server";
+import { getStripe } from "@/lib/stripe";
 import { db } from "@/db/index";
 import { bills, payments } from "@/db/schema";
 import { eq } from "drizzle-orm";
 
 export const dynamic = "force-dynamic";
-
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: "2026-01-28.clover",
-});
 
 export async function POST(
   request: NextRequest,
@@ -21,6 +17,14 @@ export async function POST(
   }
 
   const { id } = await params;
+
+  const stripe = getStripe();
+  if (!stripe) {
+    return NextResponse.json(
+      { error: "Stripe is not configured (STRIPE_SECRET_KEY missing)" },
+      { status: 503 }
+    );
+  }
 
   const [bill] = await db.select().from(bills).where(eq(bills.id, id));
 
