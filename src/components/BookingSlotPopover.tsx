@@ -10,7 +10,7 @@ interface BookingSlotPopoverProps {
     aircraftTailNumber: string;
     startTime: string;
     endTime: string;
-    status: "pending" | "confirmed" | "in_progress" | "completed" | "cancelled";
+    status: "pre_booked" | "pending" | "confirmed" | "dispatched" | "checked_in" | "in_progress" | "completed" | "cancelled";
   };
 }
 

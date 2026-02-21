@@ -2,7 +2,8 @@
   "permissions": {
     "allow": [
       "Bash(npm run db:generate:*)",
-      "Bash(npm run db:migrate:*)"
+      "Bash(npm run db:migrate:*)",
+      "Bash(cd /d/GitHub/aero-book && npm run build 2>&1)"
     ]
   }
 }

@@ -14,5 +14,11 @@ export const config = {
   matcher: [
     "/dashboard/:path*",
     "/account/:path*",
+    "/logbook",
+    "/logbook/:path*",
+    "/safety",
+    "/safety/:path*",
+    "/training",
+    "/training/:path*",
   ],
 };

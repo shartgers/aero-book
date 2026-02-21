@@ -1,9 +1,12 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { auth } from "@/lib/auth/server";
 import { authClient } from "@/lib/auth/client";
-import { NeonAuthUIProvider, UserButton } from "@neondatabase/auth/react";
+import { NeonAuthUIProvider } from "@neondatabase/auth/react";
 import { ServiceWorkerRegistrar } from "@/components/ServiceWorkerRegistrar";
 import { BottomNav } from "@/components/BottomNav";
+import { DesktopNav } from "@/components/DesktopNav";
+import { UserMenu } from "@/components/UserMenu";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -21,11 +24,14 @@ export const metadata: Metadata = {
   description: "Flight association management for aero clubs",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const { data: session } = await auth.getSession();
+  const isLoggedIn = !!session?.user;
+
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
@@ -33,16 +39,17 @@ export default function RootLayout({
         <meta name="theme-color" content="#1d4ed8" />
       </head>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased pb-16 md:pb-0`}
+        className={`${geistSans.variable} ${geistMono.variable} antialiased ${isLoggedIn ? "pb-16 md:pb-0" : ""}`}
       >
         <ServiceWorkerRegistrar />
         {/* Type assertion needed: duplicate @better-fetch/fetch in node_modules causes authClient type to differ from provider expectation; runtime type is compatible */}
         <NeonAuthUIProvider authClient={authClient as Parameters<typeof NeonAuthUIProvider>[0]["authClient"]} redirectTo="/dashboard">
-          <header className="flex h-16 items-center justify-end gap-4 p-4">
-            <UserButton size="icon" />
+          <header className="flex h-16 shrink-0 items-center justify-between gap-4 border-b border-border bg-background px-4">
+            {isLoggedIn ? <DesktopNav /> : <div />}
+            <UserMenu />
           </header>
           {children}
-          <BottomNav />
+          {isLoggedIn && <BottomNav />}
         </NeonAuthUIProvider>
       </body>
     </html>

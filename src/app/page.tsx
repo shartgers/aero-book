@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 
@@ -107,10 +108,22 @@ export default function LandingPage() {
     <div className="flex flex-col">
 
       {/* ── Hero ── */}
-      <section className="relative flex min-h-[calc(100vh-4rem)] flex-col items-center justify-center overflow-hidden bg-gradient-to-br from-blue-600 via-blue-700 to-blue-900 px-4 py-20 text-white">
+      <section className="relative flex min-h-[calc(100vh-4rem)] flex-col items-center justify-center overflow-hidden bg-slate-900 px-4 py-20 text-white">
+        {/* Background Image */}
+        <div className="absolute inset-0 z-0">
+          <Image
+            src="/hero-image.png"
+            alt="Training aircraft flying at sunset"
+            fill
+            className="object-cover object-center opacity-40"
+            priority
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-slate-900/90 via-slate-900/50 to-slate-900/30" />
+        </div>
+
         {/* Subtle grid overlay */}
         <div
-          className="pointer-events-none absolute inset-0 opacity-[0.06]"
+          className="pointer-events-none absolute inset-0 z-0 opacity-[0.06]"
           style={{
             backgroundImage:
               "linear-gradient(to right,white 1px,transparent 1px),linear-gradient(to bottom,white 1px,transparent 1px)",

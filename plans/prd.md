@@ -1,6 +1,6 @@
 # AeroBook - Product Requirements Document
 
-**Status (2025-02-21):** Foundation in place (Next.js, Neon Auth, Drizzle, users/sessions). Phase 1 (Core Booking) not started.
+**Status (2025-02-21):** All five core phases complete. Booking flow is time-first (date & time → available aircraft → instructor → confirm). Fleet and aircraft detail show full specs; Vloot data loadable via `npm run db:vloot`.
 
 ## 1. Executive Summary
 
@@ -61,7 +61,7 @@ Members can browse and book from a fleet of up to 15 aircraft. The booking inter
 - A clear visual indicator if the aircraft has any open squawks (colour-coded: green = clear, amber = minor, red = grounded)
 - Hourly rate displayed on the card so members know the cost before booking
 
-The booking flow is three steps maximum: select aircraft, select time slot, confirm.
+The booking flow is four steps: (1) pick date and time, (2) choose from aircraft available for that slot, (3) optionally add an instructor, (4) confirm. Time-first ordering ensures members only see aircraft that are free for their chosen slot.
 
 #### Smart Overlap Windows
 

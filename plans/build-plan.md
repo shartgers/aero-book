@@ -1,7 +1,7 @@
 # AeroBook Implementation Plan
 
 **Last updated:** 2025-02-21  
-**Current status:** All 5 phases complete. Full feature set built and migrated.
+**Current status:** All 5 phases complete. Full feature set built and migrated. Booking flow is time-first (date & time → available aircraft → instructor → confirm). Aircraft table includes fleet specs (engine, seats, speeds, range, description); load via `npm run db:vloot`. Fleet cards: image left, info right; detail page shows full specs.
 
 ## Overview
 
@@ -48,6 +48,16 @@ aircraft: {
   hourlyRate: decimal
   status: enum (available, maintenance, grounded)
   lastMaintenanceDate: timestamp
+  imageUrl: text (nullable)        // Aircraft photo (e.g. airport-data.com lookup)
+  // Fleet specs (from e.g. Vloot.md), nullable
+  engine: text
+  seats: integer
+  maxSpeed: text
+  cruiseSpeed: text
+  range: text
+  fuelBurnPerHour: text
+  maxTakeoffWeight: text
+  description: text
   createdAt: timestamp
   updatedAt: timestamp
 }
@@ -108,6 +118,7 @@ qualifications: jsonb (nullable)  // Array of ratings
 | `/api/aircraft/[id]` | GET | Single aircraft details with squawks | ✅ |
 | `/api/bookings` | GET, POST | List user bookings / Create booking | ✅ |
 | `/api/bookings/[id]` | GET, PUT, DELETE | Booking CRUD | ✅ |
+| `/api/bookings/available-aircraft` | GET | Aircraft available for time slot (query: startTime, endTime ISO) | ✅ |
 | `/api/availability` | GET | Check aircraft availability for date range | ✅ |
 | `/api/squawks` | GET, POST | List/Create squawks | ✅ |
 | `/api/squawks/[id]` | PUT | Update squawk status | ✅ |
@@ -121,16 +132,18 @@ qualifications: jsonb (nullable)  // Array of ratings
 - [x] Squawk status badges on aircraft cards
 
 #### ✅ Aircraft Selection Component
-- [x] Card-based aircraft list
-- [x] Filter by type/availability
+- [x] Card-based aircraft list (Fleet: image left, info right; click to detail)
+- [x] Filter by type/availability; New Booking step 2 shows only aircraft available for chosen slot
 - [x] Squawk summary display
 - [x] Hourly rate display
+- [x] Aircraft detail page shows full specs (engine, seats, speeds, range, description) when stored
 
-#### ✅ Booking Form Component
-- [x] Time slot selection
-- [x] Duration picker
-- [x] Conflict detection
-- [x] Confirmation modal
+#### ✅ Booking Form Component (New Booking flow)
+- [x] **Step 1:** Date & time picker; optional notes
+- [x] **Step 2:** List of aircraft available for the chosen slot; user selects one
+- [x] **Step 3:** Optional instructor selection
+- [x] **Step 4:** Confirm and submit
+- [x] Conflict detection (slot-based availability); confirmation before create
 
 ### 1.4 Pages
 
@@ -737,6 +750,16 @@ aircraft: {
   hourlyRate: decimal
   status: enum (available, maintenance, grounded)
   lastMaintenanceDate: timestamp
+  imageUrl: text (nullable)        // Aircraft photo (e.g. airport-data.com lookup)
+  // Fleet specs (from e.g. Vloot.md), nullable
+  engine: text
+  seats: integer
+  maxSpeed: text
+  cruiseSpeed: text
+  range: text
+  fuelBurnPerHour: text
+  maxTakeoffWeight: text
+  description: text
   createdAt: timestamp
   updatedAt: timestamp
 }
@@ -797,6 +820,7 @@ qualifications: jsonb (nullable)  // Array of ratings
 | `/api/aircraft/[id]` | GET | Single aircraft details with squawks | ✅ |
 | `/api/bookings` | GET, POST | List user bookings / Create booking | ✅ |
 | `/api/bookings/[id]` | GET, PUT, DELETE | Booking CRUD | ✅ |
+| `/api/bookings/available-aircraft` | GET | Aircraft available for time slot (query: startTime, endTime ISO) | ✅ |
 | `/api/availability` | GET | Check aircraft availability for date range | ✅ |
 | `/api/squawks` | GET, POST | List/Create squawks | ✅ |
 | `/api/squawks/[id]` | PUT | Update squawk status | ✅ |
@@ -810,16 +834,18 @@ qualifications: jsonb (nullable)  // Array of ratings
 - [x] Squawk status badges on aircraft cards
 
 #### ✅ Aircraft Selection Component
-- [x] Card-based aircraft list
-- [x] Filter by type/availability
+- [x] Card-based aircraft list (Fleet: image left, info right; click to detail)
+- [x] Filter by type/availability; New Booking step 2 shows only aircraft available for chosen slot
 - [x] Squawk summary display
 - [x] Hourly rate display
+- [x] Aircraft detail page shows full specs (engine, seats, speeds, range, description) when stored
 
-#### ✅ Booking Form Component
-- [x] Time slot selection
-- [x] Duration picker
-- [x] Conflict detection
-- [x] Confirmation modal
+#### ✅ Booking Form Component (New Booking flow)
+- [x] **Step 1:** Date & time picker; optional notes
+- [x] **Step 2:** List of aircraft available for the chosen slot; user selects one
+- [x] **Step 3:** Optional instructor selection
+- [x] **Step 4:** Confirm and submit
+- [x] Conflict detection (slot-based availability); confirmation before create
 
 ### 1.4 Pages
 
@@ -1426,6 +1452,16 @@ aircraft: {
   hourlyRate: decimal
   status: enum (available, maintenance, grounded)
   lastMaintenanceDate: timestamp
+  imageUrl: text (nullable)        // Aircraft photo (e.g. airport-data.com lookup)
+  // Fleet specs (from e.g. Vloot.md), nullable
+  engine: text
+  seats: integer
+  maxSpeed: text
+  cruiseSpeed: text
+  range: text
+  fuelBurnPerHour: text
+  maxTakeoffWeight: text
+  description: text
   createdAt: timestamp
   updatedAt: timestamp
 }
@@ -1486,6 +1522,7 @@ qualifications: jsonb (nullable)  // Array of ratings
 | `/api/aircraft/[id]` | GET | Single aircraft details with squawks | ✅ |
 | `/api/bookings` | GET, POST | List user bookings / Create booking | ✅ |
 | `/api/bookings/[id]` | GET, PUT, DELETE | Booking CRUD | ✅ |
+| `/api/bookings/available-aircraft` | GET | Aircraft available for time slot (query: startTime, endTime ISO) | ✅ |
 | `/api/availability` | GET | Check aircraft availability for date range | ✅ |
 | `/api/squawks` | GET, POST | List/Create squawks | ✅ |
 | `/api/squawks/[id]` | PUT | Update squawk status | ✅ |
@@ -1499,16 +1536,18 @@ qualifications: jsonb (nullable)  // Array of ratings
 - [x] Squawk status badges on aircraft cards
 
 #### ✅ Aircraft Selection Component
-- [x] Card-based aircraft list
-- [x] Filter by type/availability
+- [x] Card-based aircraft list (Fleet: image left, info right; click to detail)
+- [x] Filter by type/availability; New Booking step 2 shows only aircraft available for chosen slot
 - [x] Squawk summary display
 - [x] Hourly rate display
+- [x] Aircraft detail page shows full specs (engine, seats, speeds, range, description) when stored
 
-#### ✅ Booking Form Component
-- [x] Time slot selection
-- [x] Duration picker
-- [x] Conflict detection
-- [x] Confirmation modal
+#### ✅ Booking Form Component (New Booking flow)
+- [x] **Step 1:** Date & time picker; optional notes
+- [x] **Step 2:** List of aircraft available for the chosen slot; user selects one
+- [x] **Step 3:** Optional instructor selection
+- [x] **Step 4:** Confirm and submit
+- [x] Conflict detection (slot-based availability); confirmation before create
 
 ### 1.4 Pages
 

@@ -5,7 +5,16 @@ export const userRoleEnum = pgEnum("user_role", ["member", "student", "instructo
 export const aircraftStatusEnum = pgEnum("aircraft_status", ["available", "maintenance", "grounded"]);
 export const squawkSeverityEnum = pgEnum("squawk_severity", ["cosmetic", "operational", "airworthiness"]);
 export const squawkStatusEnum = pgEnum("squawk_status", ["open", "in_progress", "resolved"]);
-export const bookingStatusEnum = pgEnum("booking_status", ["pending", "confirmed", "in_progress", "completed", "cancelled"]);
+export const bookingStatusEnum = pgEnum("booking_status", [
+  "pre_booked",
+  "pending",
+  "confirmed",
+  "dispatched",
+  "checked_in",
+  "in_progress",
+  "completed",
+  "cancelled",
+]);
 
 // Users table
 export const users = pgTable("users", {
@@ -262,4 +271,162 @@ export const notificationPreferences = pgTable("notification_preferences", {
   pushSubscription: jsonb("push_subscription"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// ─── Phase 6: Logbook, Techbook & Dispatch ────────────────────────────────────
+
+export const flightTypeEnum = pgEnum("flight_type", ["solo", "dual", "pic", "instruction"]);
+export const resourceTypeEnum = pgEnum("resource_type", ["aircraft", "simulator", "classroom"]);
+
+export const techLogEntries = pgTable("tech_log_entries", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  aircraftId: uuid("aircraft_id").notNull().references(() => aircraft.id, { onDelete: "cascade" }),
+  bookingId: uuid("booking_id").references(() => bookings.id, { onDelete: "set null" }),
+  pilotId: uuid("pilot_id").notNull().references(() => users.id),
+  entryDate: timestamp("entry_date").notNull(),
+  hobbsIn: numeric("hobbs_in", { precision: 8, scale: 1 }),
+  hobbsOut: numeric("hobbs_out", { precision: 8, scale: 1 }),
+  tachIn: numeric("tach_in", { precision: 8, scale: 1 }),
+  tachOut: numeric("tach_out", { precision: 8, scale: 1 }),
+  airtime: numeric("airtime", { precision: 6, scale: 1 }),
+  fuelAdded: numeric("fuel_added", { precision: 6, scale: 1 }),
+  oilAdded: numeric("oil_added", { precision: 5, scale: 2 }),
+  remarks: text("remarks"),
+  signedOffBy: uuid("signed_off_by").references(() => users.id),
+  signedOffAt: timestamp("signed_off_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const logbookEntries = pgTable("logbook_entries", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  bookingId: uuid("booking_id").references(() => bookings.id, { onDelete: "set null" }),
+  aircraftId: uuid("aircraft_id").references(() => aircraft.id, { onDelete: "set null" }),
+  entryDate: timestamp("entry_date").notNull(),
+  aircraftType: text("aircraft_type").notNull(),
+  tailNumber: text("tail_number").notNull(),
+  departureIcao: text("departure_icao"),
+  arrivalIcao: text("arrival_icao"),
+  totalTime: numeric("total_time", { precision: 6, scale: 1 }).notNull(),
+  picTime: numeric("pic_time", { precision: 6, scale: 1 }),
+  dualTime: numeric("dual_time", { precision: 6, scale: 1 }),
+  soloTime: numeric("solo_time", { precision: 6, scale: 1 }),
+  nightTime: numeric("night_time", { precision: 6, scale: 1 }),
+  instrumentTime: numeric("instrument_time", { precision: 6, scale: 1 }),
+  crossCountryTime: numeric("cross_country_time", { precision: 6, scale: 1 }),
+  landingsDay: integer("landings_day"),
+  landingsNight: integer("landings_night"),
+  flightType: flightTypeEnum("flight_type").notNull(),
+  remarks: text("remarks"),
+  instructorSignoff: uuid("instructor_signoff").references(() => users.id),
+  instructorSignoffAt: timestamp("instructor_signoff_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const resources = pgTable("resources", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  type: resourceTypeEnum("type").notNull(),
+  name: text("name").notNull(),
+  capacity: integer("capacity").default(1).notNull(),
+  hourlyRate: numeric("hourly_rate", { precision: 10, scale: 2 }),
+  aircraftId: uuid("aircraft_id").references(() => aircraft.id, { onDelete: "set null" }),
+  isActive: boolean("is_active").default(true).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const maintenanceIntervals = pgTable("maintenance_intervals", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  aircraftId: uuid("aircraft_id").notNull().references(() => aircraft.id, { onDelete: "cascade" }),
+  name: text("name").notNull(),
+  intervalHours: numeric("interval_hours", { precision: 8, scale: 1 }).notNull(),
+  lastCompletedAt: numeric("last_completed_at", { precision: 8, scale: 1 }),
+  nextDueAt: numeric("next_due_at", { precision: 8, scale: 1 }),
+  warningThresholdHours: numeric("warning_threshold_hours", { precision: 5, scale: 1 }).default("10").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// ─── Phase 7: Safety Management & Training ────────────────────────────────────
+
+export const safetyReportCategoryEnum = pgEnum("safety_report_category", [
+  "airprox", "runway_incursion", "bird_strike", "technical_fault", "near_miss", "other",
+]);
+export const safetyReportSeverityEnum = pgEnum("safety_report_severity", [
+  "hazard", "incident", "serious_incident", "accident",
+]);
+export const safetyReportStatusEnum = pgEnum("safety_report_status", [
+  "submitted", "under_review", "closed",
+]);
+export const documentCategoryEnum = pgEnum("document_category", [
+  "licence", "medical", "rating", "type_rating", "insurance",
+  "club_agreement", "notam", "sop", "arc", "other",
+]);
+export const trainingStatusEnum = pgEnum("training_status", [
+  "active", "completed", "suspended", "failed",
+]);
+export const lessonOutcomeEnum = pgEnum("lesson_outcome", [
+  "not_started", "in_progress", "passed", "failed", "deferred",
+]);
+
+export const safetyReports = pgTable("safety_reports", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  reportedBy: uuid("reported_by").references(() => users.id, { onDelete: "set null" }),
+  isAnonymous: boolean("is_anonymous").default(false).notNull(),
+  category: safetyReportCategoryEnum("category").notNull(),
+  severity: safetyReportSeverityEnum("severity").notNull(),
+  description: text("description").notNull(),
+  dateOfOccurrence: timestamp("date_of_occurrence").notNull(),
+  location: text("location"),
+  aircraftId: uuid("aircraft_id").references(() => aircraft.id, { onDelete: "set null" }),
+  status: safetyReportStatusEnum("status").default("submitted").notNull(),
+  reviewedBy: uuid("reviewed_by").references(() => users.id),
+  resolution: text("resolution"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const documents = pgTable("documents", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  userId: uuid("user_id").references(() => users.id, { onDelete: "cascade" }),
+  title: text("title").notNull(),
+  category: documentCategoryEnum("category").notNull(),
+  fileUrl: text("file_url").notNull(),
+  mimeType: text("mime_type").notNull(),
+  expiryDate: timestamp("expiry_date"),
+  isClubWide: boolean("is_club_wide").default(false).notNull(),
+  uploadedBy: uuid("uploaded_by").notNull().references(() => users.id),
+  isVerified: boolean("is_verified").default(false).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const trainingRecords = pgTable("training_records", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  studentId: uuid("student_id").notNull().references(() => users.id),
+  instructorId: uuid("instructor_id").references(() => instructors.id, { onDelete: "set null" }),
+  courseType: text("course_type").notNull(),
+  startDate: timestamp("start_date").notNull(),
+  targetEndDate: timestamp("target_end_date"),
+  status: trainingStatusEnum("status").default("active").notNull(),
+  progressPercent: numeric("progress_percent", { precision: 5, scale: 2 }).default("0").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const lessonCompletions = pgTable("lesson_completions", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  trainingRecordId: uuid("training_record_id").notNull()
+    .references(() => trainingRecords.id, { onDelete: "cascade" }),
+  bookingId: uuid("booking_id").references(() => bookings.id, { onDelete: "set null" }),
+  lessonCode: text("lesson_code").notNull(),
+  lessonTitle: text("lesson_title").notNull(),
+  outcome: lessonOutcomeEnum("outcome").default("not_started").notNull(),
+  grade: integer("grade"),
+  instructorNotes: text("instructor_notes"),
+  cbtaAssessmentData: jsonb("cbta_assessment_data"),
+  signedOffBy: uuid("signed_off_by").references(() => users.id),
+  signedOffAt: timestamp("signed_off_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
 });

@@ -57,6 +57,13 @@
       "when": 1771693497819,
       "tag": "0007_flaky_sunset_bain",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1771694498518,
+      "tag": "0008_shallow_grandmaster",
+      "breakpoints": true
     }
   ]
 }
