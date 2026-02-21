@@ -15,11 +15,10 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
-import { LogOut, Settings, LayoutDashboard, User as UserIcon, ShieldCheck } from "lucide-react"
+import { LogOut, Settings, LayoutDashboard, ShieldCheck } from "lucide-react"
 
 export function UserMenu() {
   const router = useRouter()
-  // @ts-expect-error - avoiding type issues if return type is complex, we will check it
   const { data: session } = authClient.useSession()
   const user = session?.user
 

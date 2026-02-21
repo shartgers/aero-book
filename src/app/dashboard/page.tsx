@@ -2,6 +2,7 @@ import { auth } from "@/lib/auth/server";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { ExpiryWarningBanner } from "@/components/ExpiryWarningBanner";
+import { ensureNeonAuthUserInAppDb } from "@/lib/ensure-user";
 
 export const dynamic = "force-dynamic";
 
@@ -18,6 +19,10 @@ export default async function DashboardPage() {
   if (!session?.user) {
     redirect("/auth/sign-in");
   }
+
+  // Sync Neon Auth user into public.users so role, bookings, bills, etc. work.
+  // Without this, users who only visit the dashboard never get a row (role is stored here).
+  await ensureNeonAuthUserInAppDb(session.user);
 
   let certificates: Certificate[] = [];
   try {

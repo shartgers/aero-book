@@ -1,8 +1,11 @@
 /**
  * Ensures the Neon Auth session user exists in the app's public.users table.
- * Bookings and other tables reference public.users.id; Neon Auth stores users
- * in neon_auth schema, so we sync the signed-in user into public.users on first use.
- *
+ * - Neon Auth stores users in its own schema (e.g. neon_auth); the app stores
+ *   profile and role (member, admin, etc.) in public.users.
+ * - Bookings, bills, certificates, etc. reference public.users.id, so we must
+ *   sync the signed-in user into public.users on first use.
+ * - Called from the dashboard (so every signed-in user gets a row on first load)
+ *   and from APIs that write to user-scoped tables (bookings, logbook, etc.).
  * Uses insert + onConflictDoNothing so concurrent requests don't duplicate rows.
  */
 import { db } from "@/db/index";
