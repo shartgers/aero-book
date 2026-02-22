@@ -4,7 +4,7 @@ import { db } from "@/db/index";
 import { logbookEntries } from "@/db/schema";
 import { eq, desc } from "drizzle-orm";
 import Link from "next/link";
-import { LogbookAddForm } from "@/components/LogbookAddForm";
+import { LogbookEntryDialog } from "@/components/LogbookEntryDialog";
 
 export const dynamic = "force-dynamic";
 
@@ -43,12 +43,15 @@ export default async function LogbookPage() {
     <div className="mx-auto max-w-3xl px-4 py-8">
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold">Pilot Logbook</h1>
-        <Link
-          href="/api/logbook/export"
-          className="inline-flex items-center rounded-md border border-input bg-background px-4 py-2 text-sm font-medium hover:bg-accent hover:text-accent-foreground"
-        >
-          Export CSV
-        </Link>
+        <div className="flex items-center gap-2">
+          <LogbookEntryDialog />
+          <Link
+            href="/api/logbook/export"
+            className="inline-flex items-center rounded-md border border-input bg-background px-4 py-2 text-sm font-medium hover:bg-accent hover:text-accent-foreground"
+          >
+            Export CSV
+          </Link>
+        </div>
       </div>
 
       <div className="flex flex-wrap gap-4 mb-6 rounded-lg border p-4 bg-muted/50">
@@ -86,7 +89,7 @@ export default async function LogbookPage() {
             {entries.length === 0 ? (
               <tr>
                 <td colSpan={8} className="py-8 text-center text-muted-foreground">
-                  No logbook entries yet. Add your first entry below.
+                  No logbook entries yet. Use &ldquo;Add Entry&rdquo; to record your first flight.
                 </td>
               </tr>
             ) : (
@@ -111,8 +114,6 @@ export default async function LogbookPage() {
         </table>
       </div>
 
-      <h2 className="text-lg font-semibold mb-4">Add Entry</h2>
-      <LogbookAddForm />
     </div>
   );
 }
