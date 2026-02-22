@@ -13,7 +13,8 @@
     "db:verify": "node scripts/db-verify.mjs",
     "db:seed-aircraft": "node scripts/seed-aircraft.mjs",
     "db:aircraft-photos": "node scripts/aircraft-photos.mjs",
-    "db:vloot": "node scripts/aircraft-vloot-specs.mjs"
+    "db:vloot": "node scripts/aircraft-vloot-specs.mjs",
+    "db:seed-bookings": "node scripts/seed-bookings.mjs"
   },
   "dependencies": {
     "@anthropic-ai/claude-agent-sdk": "^0.2.50",
