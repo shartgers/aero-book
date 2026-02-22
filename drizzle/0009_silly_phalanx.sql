@@ -1,0 +1,1 @@
+ALTER TYPE "public"."unfulfilled_reason" ADD VALUE 'expired_certificate';

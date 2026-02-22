@@ -3,7 +3,18 @@
     "allow": [
       "Bash(npm run db:generate:*)",
       "Bash(npm run db:migrate:*)",
-      "Bash(cd /d/GitHub/aero-book && npm run build 2>&1)"
+      "Bash(cd /d/GitHub/aero-book && npm run build 2>&1)",
+      "Bash(npm run lint:*)",
+      "Bash(npx eslint:*)",
+      "Bash(node -e \"const d=require\\(''fs''\\).readFileSync\\(''/dev/stdin'',''utf8''\\); const r=JSON.parse\\(d.split\\(''\\\\n''\\).filter\\(l=>l.startsWith\\(''[''\\)\\)[0]||''[]''\\); r[0]?.messages?.filter\\(m=>m.severity===2\\).forEach\\(m=>console.log\\(m.ruleId, m.line\\)\\)\")",
+      "Bash(node -e:*)",
+      "Bash(findstr:*)",
+      "Bash(node -p:*)",
+      "Bash(del:*)",
+      "Skill(commit-commands:commit)",
+      "Skill(commit-commands:commit:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)"
     ]
   }
 }

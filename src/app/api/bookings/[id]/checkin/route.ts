@@ -36,7 +36,7 @@ export async function POST(
   const body = await request.json();
   const { hobbsIn, fuelPostFlight, newSquawk } = body;
 
-  if (typeof hobbsIn !== "number" || typeof fuelPostFlight !== "string") {
+  if (typeof hobbsIn !== "number" || hobbsIn < 0 || typeof fuelPostFlight !== "string") {
     return NextResponse.json({ error: "hobbsIn (number) and fuelPostFlight (string) are required" }, { status: 400 });
   }
 
@@ -44,10 +44,18 @@ export async function POST(
   const [techEntry] = await db.select().from(techLogEntries)
     .where(eq(techLogEntries.bookingId, booking.id));
 
-  // Compute airtime
-  const airtime = techEntry?.hobbsOut
-    ? String((hobbsIn - parseFloat(techEntry.hobbsOut)).toFixed(1))
-    : null;
+  // Compute airtime — validate hobbsIn is greater than hobbsOut to prevent negative values
+  let airtime: string | null = null;
+  if (techEntry?.hobbsOut) {
+    const hobbsOut = parseFloat(techEntry.hobbsOut);
+    if (hobbsIn < hobbsOut) {
+      return NextResponse.json(
+        { error: `hobbsIn (${hobbsIn}) cannot be less than hobbsOut (${hobbsOut})` },
+        { status: 400 }
+      );
+    }
+    airtime = String((hobbsIn - hobbsOut).toFixed(1));
+  }
 
   // Update tech log entry
   if (techEntry) {

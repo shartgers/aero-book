@@ -223,7 +223,7 @@ export const payments = pgTable("payments", {
 });
 
 // Unfulfilled demand reasons enum
-export const unfulfilledReasonEnum = pgEnum("unfulfilled_reason", ["full_fleet", "no_instructor", "aircraft_grounded"]);
+export const unfulfilledReasonEnum = pgEnum("unfulfilled_reason", ["full_fleet", "no_instructor", "aircraft_grounded", "expired_certificate"]);
 
 // Unfulfilled demand log
 export const unfulfilledDemand = pgTable("unfulfilled_demand", {

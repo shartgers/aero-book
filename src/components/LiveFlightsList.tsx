@@ -44,36 +44,39 @@ interface ApiResponse {
  * Shows loading and error states; supports refresh.
  */
 export function LiveFlightsList() {
+  const [refreshTick, setRefreshTick] = useState(0);
   const [state, setState] = useState<{
     status: "loading" | "ok" | "error";
     data: LiveFlightPosition[];
     error: string | null;
   }>({ status: "loading", data: [], error: null });
 
-  const fetchFlights = async () => {
-    setState((s) => ({ ...s, status: "loading", error: null }));
-    try {
-      const res = await fetch("/api/flights/live", { cache: "no-store" });
-      const json: ApiResponse = await res.json();
-      if (!res.ok) {
-        setState({
-          status: "error",
-          data: [],
-          error: json.error ?? `Request failed: ${res.status}`,
-        });
-        return;
-      }
-      const list = Array.isArray(json.data) ? json.data : [];
-      setState({ status: "ok", data: list, error: null });
-    } catch (e) {
-      const message = e instanceof Error ? e.message : "Failed to load";
-      setState({ status: "error", data: [], error: message });
-    }
-  };
-
   useEffect(() => {
-    fetchFlights();
-  }, []);
+    let cancelled = false;
+
+    fetch("/api/flights/live", { cache: "no-store" })
+      .then((res) => res.json().then((json: ApiResponse) => ({ res, json })))
+      .then(({ res, json }) => {
+        if (cancelled) return;
+        if (!res.ok) {
+          setState({ status: "error", data: [], error: json.error ?? `Request failed: ${res.status}` });
+          return;
+        }
+        setState({ status: "ok", data: Array.isArray(json.data) ? json.data : [], error: null });
+      })
+      .catch((e: unknown) => {
+        if (cancelled) return;
+        const message = e instanceof Error ? e.message : "Failed to load";
+        setState({ status: "error", data: [], error: message });
+      });
+
+    return () => { cancelled = true; };
+  }, [refreshTick]);
+
+  const handleRefresh = () => {
+    setState((s) => ({ ...s, status: "loading", error: null }));
+    setRefreshTick((n) => n + 1);
+  };
 
   if (state.status === "loading") {
     return (
@@ -90,7 +93,7 @@ export function LiveFlightsList() {
       <Card>
         <CardContent className="pt-6">
           <p className="text-destructive">{state.error}</p>
-          <Button variant="outline" size="sm" className="mt-2" onClick={fetchFlights}>
+          <Button variant="outline" size="sm" className="mt-2" onClick={handleRefresh}>
             Retry
           </Button>
         </CardContent>
@@ -106,7 +109,7 @@ export function LiveFlightsList() {
       <Card>
         <CardHeader className="flex flex-row items-center justify-between gap-2">
           <CardTitle>Live flights</CardTitle>
-          <Button variant="outline" size="sm" onClick={fetchFlights}>
+          <Button variant="outline" size="sm" onClick={handleRefresh}>
             Refresh
           </Button>
         </CardHeader>

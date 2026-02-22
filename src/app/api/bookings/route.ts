@@ -80,7 +80,7 @@ export async function POST(request: NextRequest) {
         aircraftType: craft.type,
         requestedStartTime: start,
         requestedEndTime: end,
-        reason: "full_fleet",
+        reason: "expired_certificate",
       });
     }
 
