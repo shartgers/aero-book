@@ -1,5 +1,6 @@
 import { auth } from "@/lib/auth/server";
 import { redirect, notFound } from "next/navigation";
+import { cookies } from "next/headers";
 import { BillSummary } from "@/components/BillSummary";
 import type { BillStatus } from "@/components/BillStatusBadge";
 import { Button } from "@/components/ui/button";
@@ -30,10 +31,17 @@ export default async function BillDetailPage({ params }: { params: Promise<{ id:
 
   const { id } = await params;
 
+  // Forward request cookies so /api/bills/[id] can resolve auth.getSession().
+  const cookieStore = await cookies();
+  const cookieHeader = cookieStore.getAll().map((c) => `${c.name}=${c.value}`).join("; ");
+
   let bill: BillDetail | null = null;
   try {
     const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000";
-    const res = await fetch(`${baseUrl}/api/bills/${id}`, { cache: "no-store" });
+    const res = await fetch(`${baseUrl}/api/bills/${id}`, {
+      cache: "no-store",
+      headers: { cookie: cookieHeader },
+    });
     if (res.ok) {
       bill = await res.json();
     } else if (res.status === 404) {

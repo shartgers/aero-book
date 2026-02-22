@@ -1,11 +1,16 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth/server";
 import { db } from "@/db/index";
-import { bills, bookings, aircraft } from "@/db/schema";
-import { eq, desc } from "drizzle-orm";
+import { bills, bookings, aircraft, users } from "@/db/schema";
+import { eq, desc, or } from "drizzle-orm";
 
 export const dynamic = "force-dynamic";
 
+/**
+ * Returns bills for the current user. Matches by session user id (Neon Auth)
+ * or by email, so seeded data tied to public.users by email (e.g. test@test.com)
+ * still shows when the same person is logged in even if user row ids differ.
+ */
 export async function GET() {
   const { data: session } = await auth.getSession();
   if (!session?.user) {
@@ -35,7 +40,13 @@ export async function GET() {
     .from(bills)
     .innerJoin(bookings, eq(bookings.id, bills.bookingId))
     .innerJoin(aircraft, eq(aircraft.id, bookings.aircraftId))
-    .where(eq(bills.userId, session.user.id))
+    .innerJoin(users, eq(users.id, bills.userId))
+    .where(
+      or(
+        eq(bills.userId, session.user.id),
+        eq(users.email, session.user.email ?? "")
+      )
+    )
     .orderBy(desc(bills.createdAt));
 
   return NextResponse.json(results);

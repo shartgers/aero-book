@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import Link from "next/link";
 import LessonSignoffForm from "@/components/LessonSignoffForm";
+import { createBillForCompletedBooking } from "@/lib/booking-bill";
 
 export const dynamic = "force-dynamic";
 
@@ -112,6 +113,32 @@ async function checkinBooking(formData: FormData) {
   redirect(`/bookings/${bookingId}`);
 }
 
+/** Marks a checked-in booking as completed and creates a pending bill. Instructor/admin only. */
+async function completeBooking(formData: FormData) {
+  "use server";
+  const bookingId = formData.get("bookingId") as string;
+  if (!bookingId) return;
+
+  const { data: session } = await auth.getSession();
+  if (!session?.user) return;
+
+  const [userRow] = await db.select({ role: users.role }).from(users).where(eq(users.id, session.user.id));
+  const role = userRow?.role ?? "member";
+  if (role !== "instructor" && role !== "admin") return;
+
+  const [booking] = await db.select().from(bookings).where(eq(bookings.id, bookingId));
+  if (!booking || booking.status !== "checked_in") return;
+
+  await db
+    .update(bookings)
+    .set({ status: "completed", updatedAt: new Date() })
+    .where(eq(bookings.id, bookingId));
+
+  await createBillForCompletedBooking(bookingId);
+
+  redirect(`/bookings/${bookingId}`);
+}
+
 export default async function BookingDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { data: session } = await auth.getSession();
   if (!session?.user) {
@@ -145,6 +172,7 @@ export default async function BookingDetailPage({ params }: { params: Promise<{ 
   const canCancel = booking.status === "pending" || booking.status === "confirmed";
   const canDispatch = booking.status === "confirmed";
   const canCheckin = booking.status === "dispatched";
+  const canComplete = booking.status === "checked_in" && isInstructorOrAdmin;
 
   return (
     <div className="mx-auto max-w-2xl px-4 py-8">
@@ -300,6 +328,28 @@ export default async function BookingDetailPage({ params }: { params: Promise<{ 
             <CardFooter>
               <Button type="submit" className="bg-teal-600 hover:bg-teal-700 text-white">
                 Check In
+              </Button>
+            </CardFooter>
+          </form>
+        </Card>
+      )}
+
+      {/* ── Complete flight (instructor / admin only): creates bill for pilot ── */}
+      {canComplete && (
+        <Card className="mt-6 border-green-200 dark:border-green-900">
+          <CardHeader>
+            <CardTitle className="text-lg text-green-700 dark:text-green-400">
+              Complete Flight
+            </CardTitle>
+            <p className="text-sm text-muted-foreground">
+              Mark this flight as completed and generate a bill for the pilot. The member will see the bill under Bills and can pay or dispute it.
+            </p>
+          </CardHeader>
+          <form action={completeBooking}>
+            <input type="hidden" name="bookingId" value={booking.id} />
+            <CardFooter>
+              <Button type="submit" className="bg-green-600 hover:bg-green-700 text-white">
+                Complete flight &amp; create bill
               </Button>
             </CardFooter>
           </form>

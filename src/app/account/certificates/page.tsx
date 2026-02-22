@@ -1,5 +1,6 @@
 import { auth } from "@/lib/auth/server";
 import { redirect } from "next/navigation";
+import { cookies } from "next/headers";
 import { Button } from "@/components/ui/button";
 import { CertificatesClient } from "@/components/CertificatesClient";
 import Link from "next/link";
@@ -20,10 +21,17 @@ export default async function CertificatesPage() {
     redirect("/auth/sign-in");
   }
 
+  // Forward request cookies so /api/certificates can resolve auth.getSession().
+  const cookieStore = await cookies();
+  const cookieHeader = cookieStore.getAll().map((c) => `${c.name}=${c.value}`).join("; ");
+
   let certificates: Certificate[] = [];
   try {
     const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000";
-    const res = await fetch(`${baseUrl}/api/certificates`, { cache: "no-store" });
+    const res = await fetch(`${baseUrl}/api/certificates`, {
+      cache: "no-store",
+      headers: { cookie: cookieHeader },
+    });
     if (res.ok) {
       certificates = await res.json();
     }

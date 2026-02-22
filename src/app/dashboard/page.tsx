@@ -1,5 +1,6 @@
 import { auth } from "@/lib/auth/server";
 import { redirect } from "next/navigation";
+import { cookies } from "next/headers";
 import Link from "next/link";
 import { ExpiryWarningBanner } from "@/components/ExpiryWarningBanner";
 import { ensureNeonAuthUserInAppDb } from "@/lib/ensure-user";
@@ -24,10 +25,17 @@ export default async function DashboardPage() {
   // Without this, users who only visit the dashboard never get a row (role is stored here).
   await ensureNeonAuthUserInAppDb(session.user);
 
+  // Forward request cookies so /api/certificates can resolve auth.getSession().
+  const cookieStore = await cookies();
+  const cookieHeader = cookieStore.getAll().map((c) => `${c.name}=${c.value}`).join("; ");
+
   let certificates: Certificate[] = [];
   try {
     const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000";
-    const res = await fetch(`${baseUrl}/api/certificates`, { cache: "no-store" });
+    const res = await fetch(`${baseUrl}/api/certificates`, {
+      cache: "no-store",
+      headers: { cookie: cookieHeader },
+    });
     if (res.ok) {
       certificates = await res.json();
     }

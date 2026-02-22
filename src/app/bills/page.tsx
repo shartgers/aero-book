@@ -1,5 +1,6 @@
 import { auth } from "@/lib/auth/server";
 import { redirect } from "next/navigation";
+import { cookies } from "next/headers";
 import { BillSummary } from "@/components/BillSummary";
 import type { BillStatus } from "@/components/BillStatusBadge";
 import Link from "next/link";
@@ -26,12 +27,16 @@ export default async function BillsPage() {
     redirect("/auth/sign-in");
   }
 
+  // Forward request cookies so /api/bills can resolve auth.getSession() and return user's bills.
+  const cookieStore = await cookies();
+  const cookieHeader = cookieStore.getAll().map((c) => `${c.name}=${c.value}`).join("; ");
+
   let bills: Bill[] = [];
   try {
     const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000";
     const res = await fetch(`${baseUrl}/api/bills`, {
       cache: "no-store",
-      headers: { cookie: "" }, // session handled by proxy in real usage
+      headers: { cookie: cookieHeader },
     });
     if (res.ok) {
       bills = await res.json();

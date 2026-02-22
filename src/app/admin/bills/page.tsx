@@ -1,8 +1,8 @@
 import { auth } from "@/lib/auth/server";
 import { redirect } from "next/navigation";
 import { db } from "@/db/index";
-import { users } from "@/db/schema";
-import { eq } from "drizzle-orm";
+import { users, bills, bookings, aircraft } from "@/db/schema";
+import { eq, desc } from "drizzle-orm";
 import { BillStatusBadge, type BillStatus } from "@/components/BillStatusBadge";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
@@ -45,18 +45,40 @@ export default async function AdminBillsPage({
 
   const { status: filterStatus } = await searchParams;
 
-  let bills: AdminBill[] = [];
-  try {
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000";
-    const url = new URL(`${baseUrl}/api/admin/bills`);
-    if (filterStatus) url.searchParams.set("status", filterStatus);
-    const res = await fetch(url.toString(), { cache: "no-store" });
-    if (res.ok) {
-      bills = await res.json();
-    }
-  } catch {
-    // API may not be available yet
+  // Load bills directly in the Server Component. We do not fetch /api/admin/bills
+  // from here because server-side fetch does not send the browser's cookies,
+  // so the API would see an unauthenticated request and return 401.
+  let query = db
+    .select({
+      id: bills.id,
+      userName: users.name,
+      aircraftTailNumber: aircraft.tailNumber,
+      bookingStartTime: bookings.startTime,
+      totalAmount: bills.totalAmount,
+      status: bills.status,
+      createdAt: bills.createdAt,
+    })
+    .from(bills)
+    .innerJoin(bookings, eq(bookings.id, bills.bookingId))
+    .innerJoin(aircraft, eq(aircraft.id, bookings.aircraftId))
+    .innerJoin(users, eq(users.id, bills.userId))
+    .$dynamic();
+
+  if (filterStatus) {
+    query = query.where(eq(bills.status, filterStatus as "pending" | "paid" | "disputed" | "refunded"));
   }
+
+  const rows = await query.orderBy(desc(bills.createdAt));
+
+  const billsList: AdminBill[] = rows.map((r) => ({
+    id: r.id,
+    userName: r.userName ?? "",
+    aircraftTailNumber: r.aircraftTailNumber,
+    bookingDate: r.bookingStartTime.toISOString(),
+    totalAmount: Number(r.totalAmount),
+    status: r.status as BillStatus,
+    createdAt: r.createdAt.toISOString(),
+  }));
 
   const statuses: (BillStatus | "all")[] = ["all", "pending", "paid", "disputed", "refunded"];
 
@@ -103,7 +125,7 @@ export default async function AdminBillsPage({
             </tr>
           </thead>
           <tbody>
-            {bills.map((b) => (
+            {billsList.map((b) => (
               <tr key={b.id} className="border-b">
                 <td className="px-4 py-2">{b.userName}</td>
                 <td className="px-4 py-2">{b.aircraftTailNumber}</td>
@@ -113,7 +135,7 @@ export default async function AdminBillsPage({
                 <td className="px-4 py-2">{new Date(b.createdAt).toLocaleDateString()}</td>
               </tr>
             ))}
-            {bills.length === 0 && (
+            {billsList.length === 0 && (
               <tr>
                 <td colSpan={6} className="px-4 py-8 text-center text-muted-foreground">
                   No bills found.

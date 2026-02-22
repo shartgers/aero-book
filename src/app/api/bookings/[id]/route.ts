@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth/server";
 import { db } from "@/db/index";
-import { bookings, users, aircraft, bookingInstructors, instructors, bills, waitlist, notificationPreferences } from "@/db/schema";
+import { bookings, users, waitlist, notificationPreferences } from "@/db/schema";
 import { eq, and, lt, gt } from "drizzle-orm";
 import { sendPushNotification } from "@/lib/push";
+import { createBillForCompletedBooking } from "@/lib/booking-bill";
 
 export const dynamic = "force-dynamic";
 
@@ -76,60 +77,9 @@ export async function PUT(
     .where(eq(bookings.id, id))
     .returning();
 
-  // Auto-generate bill when booking is completed
+  // Auto-generate bill when booking is completed (shared logic in lib/booking-bill)
   if (status === "completed") {
-    const startMs = (booking.actualStartTime ?? booking.startTime).getTime();
-    const endMs = (booking.actualEndTime ?? booking.endTime).getTime();
-    const aircraftHours = (endMs - startMs) / (1000 * 60 * 60);
-
-    // Look up aircraft hourly rate
-    const [craft] = await db
-      .select({ hourlyRate: aircraft.hourlyRate })
-      .from(aircraft)
-      .where(eq(aircraft.id, booking.aircraftId));
-
-    const aircraftRate = parseFloat(craft?.hourlyRate ?? "0");
-    const aircraftCost = aircraftHours * aircraftRate;
-
-    // Check for confirmed instructor
-    let instructorHours: number | null = null;
-    let instructorCost: number | null = null;
-
-    const confirmedInstructors = await db
-      .select({ instructorId: bookingInstructors.instructorId })
-      .from(bookingInstructors)
-      .where(
-        and(
-          eq(bookingInstructors.bookingId, id),
-          eq(bookingInstructors.status, "confirmed")
-        )
-      );
-
-    if (confirmedInstructors.length > 0) {
-      const [instr] = await db
-        .select({ hourlyRate: instructors.hourlyRate })
-        .from(instructors)
-        .where(eq(instructors.id, confirmedInstructors[0].instructorId));
-
-      if (instr) {
-        const instrRate = parseFloat(instr.hourlyRate);
-        instructorHours = aircraftHours;
-        instructorCost = instructorHours * instrRate;
-      }
-    }
-
-    const totalAmount = aircraftCost + (instructorCost ?? 0);
-
-    await db.insert(bills).values({
-      bookingId: id,
-      userId: booking.userId,
-      aircraftHours: aircraftHours.toFixed(2),
-      aircraftCost: aircraftCost.toFixed(2),
-      instructorHours: instructorHours?.toFixed(2) ?? null,
-      instructorCost: instructorCost?.toFixed(2) ?? null,
-      totalAmount: totalAmount.toFixed(2),
-      status: "pending",
-    });
+    await createBillForCompletedBooking(id);
   }
 
   return NextResponse.json(updated);
