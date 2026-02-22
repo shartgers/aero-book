@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,11 +13,52 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 
+const SELECT_CLASS =
+  "flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring";
+
+type AircraftOption = { id: string; tailNumber: string; type: string };
+
 export function LogbookEntryDialog() {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [aircraftList, setAircraftList] = useState<AircraftOption[]>([]);
+  const [selectedAircraftId, setSelectedAircraftId] = useState("");
+  const [aircraftType, setAircraftType] = useState("");
+  const [tailNumber, setTailNumber] = useState("");
+
+  useEffect(() => {
+    if (!open) return;
+    fetch("/api/aircraft")
+      .then((r) => r.json())
+      .then((data: AircraftOption[]) => {
+        setAircraftList(data);
+      })
+      .catch(() => {/* silently ignore fetch errors */});
+  }, [open]);
+
+  function handleAircraftChange(id: string) {
+    setSelectedAircraftId(id);
+    const plane = aircraftList.find((a) => a.id === id);
+    if (plane) {
+      setAircraftType(plane.type);
+      setTailNumber(plane.tailNumber);
+    } else {
+      setAircraftType("");
+      setTailNumber("");
+    }
+  }
+
+  function handleOpenChange(next: boolean) {
+    setOpen(next);
+    if (!next) {
+      setSelectedAircraftId("");
+      setAircraftType("");
+      setTailNumber("");
+      setError("");
+    }
+  }
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -34,8 +75,9 @@ export function LogbookEntryDialog() {
     try {
       const body: Record<string, unknown> = {
         entryDate: form.get("entryDate"),
-        aircraftType: form.get("aircraftType"),
-        tailNumber: form.get("tailNumber"),
+        aircraftType,
+        tailNumber,
+        aircraftId: selectedAircraftId || null,
         departureIcao: form.get("departureIcao") || null,
         arrivalIcao: form.get("arrivalIcao") || null,
         totalTime,
@@ -58,7 +100,7 @@ export function LogbookEntryDialog() {
       });
 
       if (res.ok) {
-        setOpen(false);
+        handleOpenChange(false);
         router.refresh();
       } else {
         const data = await res.json();
@@ -70,7 +112,7 @@ export function LogbookEntryDialog() {
   }
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
         <Button>Add Entry</Button>
       </DialogTrigger>
@@ -94,7 +136,7 @@ export function LogbookEntryDialog() {
                 id="flightType"
                 name="flightType"
                 required
-                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                className={SELECT_CLASS}
               >
                 <option value="solo">Solo</option>
                 <option value="dual">Dual</option>
@@ -106,12 +148,31 @@ export function LogbookEntryDialog() {
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <Label htmlFor="aircraftType">Aircraft Type</Label>
-              <Input id="aircraftType" name="aircraftType" required placeholder="e.g. C172" />
+              <Label htmlFor="aircraftSelect">Tail Number</Label>
+              <select
+                id="aircraftSelect"
+                required
+                value={selectedAircraftId}
+                onChange={(e) => handleAircraftChange(e.target.value)}
+                className={SELECT_CLASS}
+              >
+                <option value="">Select aircraft…</option>
+                {aircraftList.map((a) => (
+                  <option key={a.id} value={a.id}>
+                    {a.tailNumber}
+                  </option>
+                ))}
+              </select>
             </div>
             <div>
-              <Label htmlFor="tailNumber">Tail Number</Label>
-              <Input id="tailNumber" name="tailNumber" required placeholder="e.g. PH-ABC" />
+              <Label htmlFor="aircraftTypeDisplay">Aircraft Type</Label>
+              <Input
+                id="aircraftTypeDisplay"
+                value={aircraftType}
+                readOnly
+                placeholder="Auto-filled from selection"
+                className="bg-muted/50 cursor-default"
+              />
             </div>
           </div>
 
@@ -182,7 +243,7 @@ export function LogbookEntryDialog() {
           </div>
 
           <div className="flex justify-end gap-2 pt-2">
-            <Button type="button" variant="outline" onClick={() => setOpen(false)}>
+            <Button type="button" variant="outline" onClick={() => handleOpenChange(false)}>
               Cancel
             </Button>
             <Button type="submit" disabled={loading}>
