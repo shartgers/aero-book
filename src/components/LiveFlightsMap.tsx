@@ -93,13 +93,14 @@ export function LiveFlightsMap({ flights }: LiveFlightsMapProps) {
       : [50, 10];
   const dataKey = `${flights.length}-${withPosition[0]?.timestamp ?? ""}`;
 
-  const [trackPositions, setTrackPositions] = useState<[number, number][]>([]);
+  const [rawTrackPositions, setRawTrackPositions] = useState<[number, number][]>([]);
   const firstFlight = withPosition[0];
   const firstFr24Id = firstFlight?.fr24_id;
+  const hasFirstFlight = !!firstFlight && typeof firstFlight.lat === "number" && typeof firstFlight.lon === "number";
+  const trackPositions = hasFirstFlight ? rawTrackPositions : [];
 
   useEffect(() => {
     if (!firstFlight || typeof firstFlight.lat !== "number" || typeof firstFlight.lon !== "number") {
-      setTrackPositions([]);
       return;
     }
     let cancelled = false;
@@ -115,7 +116,7 @@ export function LiveFlightsMap({ flights }: LiveFlightsMapProps) {
           const tracks = json.data[0]?.tracks ?? [];
           const pts = trackToPositions(tracks);
           if (pts.length > 1) {
-            setTrackPositions(pts);
+            setRawTrackPositions(pts);
             return;
           }
         }
@@ -140,7 +141,7 @@ export function LiveFlightsMap({ flights }: LiveFlightsMapProps) {
             .then((r) => r.json())
             .then((fallback: { positions?: [number, number][]; error?: string }) => {
               if (!cancelled && !fallback.error && Array.isArray(fallback.positions) && fallback.positions.length > 1) {
-                setTrackPositions(fallback.positions);
+                setRawTrackPositions(fallback.positions);
               } else {
                 trySandboxRoute();
               }
@@ -153,7 +154,7 @@ export function LiveFlightsMap({ flights }: LiveFlightsMapProps) {
           const o = origIata && SANDBOX_ROUTE[origIata];
           const d = destIata && SANDBOX_ROUTE[destIata];
           if (o && d) {
-            setTrackPositions([o, currentPos, d]);
+            setRawTrackPositions([o, currentPos, d]);
           }
         };
 
@@ -170,7 +171,7 @@ export function LiveFlightsMap({ flights }: LiveFlightsMapProps) {
         const currentPos: [number, number] = [firstFlight.lat, firstFlight.lon];
         const o = origIata && SANDBOX_ROUTE[origIata];
         const d = destIata && SANDBOX_ROUTE[destIata];
-        if (o && d) setTrackPositions([o, currentPos, d]);
+        if (o && d) setRawTrackPositions([o, currentPos, d]);
       });
     return () => {
       cancelled = true;
