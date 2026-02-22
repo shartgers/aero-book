@@ -1,4 +1,5 @@
 import { auth } from "@/lib/auth/server";
+import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { NotificationPreferencesClient } from "@/components/NotificationPreferencesClient";
 import { Button } from "@/components/ui/button";
@@ -30,10 +31,18 @@ export default async function NotificationsPage() {
     redirect("/auth/sign-in");
   }
 
+  // Fetch preferences from API. Must forward cookies so the API sees the same session
+  // (server-side fetch to our own API does not include cookies by default).
   let prefs: NotificationPreferences = DEFAULTS;
   try {
     const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000";
-    const res = await fetch(`${baseUrl}/api/notifications/preferences`, { cache: "no-store" });
+    const headersList = await headers();
+    const res = await fetch(`${baseUrl}/api/notifications/preferences`, {
+      cache: "no-store",
+      headers: {
+        Cookie: headersList.get("cookie") ?? "",
+      },
+    });
     if (res.ok) {
       prefs = await res.json();
     }

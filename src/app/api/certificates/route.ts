@@ -2,22 +2,18 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth/server";
 import { db } from "@/db/index";
 import { certificates } from "@/db/schema";
-import { eq, asc } from "drizzle-orm";
+import { getCertificatesForUser } from "@/lib/certificates-data";
 
 export const dynamic = "force-dynamic";
 
+/** GET: list certificates for the current user. */
 export async function GET() {
   const { data: session } = await auth.getSession();
   if (!session?.user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const results = await db
-    .select()
-    .from(certificates)
-    .where(eq(certificates.userId, session.user.id))
-    .orderBy(asc(certificates.expiryDate));
-
+  const results = await getCertificatesForUser(session.user.id);
   return NextResponse.json(results);
 }
 

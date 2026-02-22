@@ -26,6 +26,9 @@ export const metadata: Metadata = {
   description: "Flight association management for aero clubs",
 };
 
+// Root layout uses auth.getSession() (cookies); opt out of static generation so all routes can use session.
+export const dynamic = "force-dynamic";
+
 export default async function RootLayout({
   children,
 }: Readonly<{

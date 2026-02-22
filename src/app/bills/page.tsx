@@ -1,24 +1,25 @@
 import { auth } from "@/lib/auth/server";
 import { redirect } from "next/navigation";
-import { cookies } from "next/headers";
 import { BillSummary } from "@/components/BillSummary";
 import type { BillStatus } from "@/components/BillStatusBadge";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { getBillsForUser } from "@/lib/bills-data";
 
 export const dynamic = "force-dynamic";
 
+/** Bill shape from getBillsForUser; numeric columns come from DB as strings. */
 interface Bill {
   id: string;
-  aircraftHours: number;
-  aircraftCost: number;
-  instructorHours?: number | null;
-  instructorCost?: number | null;
-  landingFees?: number | null;
-  surcharges?: number | null;
-  totalAmount: number;
+  aircraftHours: number | string;
+  aircraftCost: number | string;
+  instructorHours?: number | string | null;
+  instructorCost?: number | string | null;
+  landingFees?: number | string | null;
+  surcharges?: number | string | null;
+  totalAmount: number | string;
   status: BillStatus;
-  createdAt: string;
+  createdAt: string | Date;
 }
 
 export default async function BillsPage() {
@@ -27,23 +28,8 @@ export default async function BillsPage() {
     redirect("/auth/sign-in");
   }
 
-  // Forward request cookies so /api/bills can resolve auth.getSession() and return user's bills.
-  const cookieStore = await cookies();
-  const cookieHeader = cookieStore.getAll().map((c) => `${c.name}=${c.value}`).join("; ");
-
-  let bills: Bill[] = [];
-  try {
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000";
-    const res = await fetch(`${baseUrl}/api/bills`, {
-      cache: "no-store",
-      headers: { cookie: cookieHeader },
-    });
-    if (res.ok) {
-      bills = await res.json();
-    }
-  } catch {
-    // API may not be available yet
-  }
+  // Use shared data layer in same request context so auth session is valid (no internal fetch 401s).
+  const bills: Bill[] = await getBillsForUser(session.user);
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-8">

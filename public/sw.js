@@ -1,5 +1,6 @@
-const CACHE_NAME = "aerobook-v1";
-const STATIC_ASSETS = ["/", "/aircraft", "/bookings", "/bills"];
+const CACHE_NAME = "aerobook-v2";
+// Only cache paths that are safe to show offline (avoid caching "/" so first load is always fresh).
+const STATIC_ASSETS = ["/aircraft", "/bookings", "/bills"];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
@@ -8,14 +9,29 @@ self.addEventListener("install", (event) => {
 });
 
 self.addEventListener("fetch", (event) => {
-  // Network-first for API routes, cache-first for static assets
-  if (event.request.url.includes("/api/")) {
+  const url = new URL(event.request.url);
+
+  // API: network-only, fall back to 503 when offline
+  if (url.pathname.startsWith("/api/")) {
     event.respondWith(fetch(event.request).catch(() => new Response("Offline", { status: 503 })));
-  } else {
-    event.respondWith(
-      caches.match(event.request).then((cached) => cached || fetch(event.request))
-    );
+    return;
   }
+
+  // Navigation / document requests: always try network first so the app never shows stale HTML.
+  // Fixes "first load shows old/minimal page until manual refresh".
+  if (event.request.mode === "navigate") {
+    event.respondWith(
+      fetch(event.request)
+        .then((res) => res)
+        .catch(() => caches.match(event.request).then((cached) => cached || new Response("Offline", { status: 503 })))
+    );
+    return;
+  }
+
+  // Static assets (JS, CSS, images): cache-first for performance and offline
+  event.respondWith(
+    caches.match(event.request).then((cached) => cached || fetch(event.request))
+  );
 });
 
 self.addEventListener("push", (event) => {

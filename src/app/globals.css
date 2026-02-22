@@ -117,6 +117,15 @@
   --sidebar-ring: oklch(0.556 0 0);
 }
 
+/* Live flights map: plane icon instead of default pin (no border/background). */
+.plane-marker {
+  background: none !important;
+  border: none !important;
+}
+.plane-marker svg {
+  color: var(--color-primary);
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;
